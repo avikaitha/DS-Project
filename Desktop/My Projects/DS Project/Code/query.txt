@@ -1,0 +1,28 @@
+INSERT INTO `ozekimessageout`( `sender`, `receiver`, `msg`, `senttime`, `receivedtime`, `operator`, `msgtype`, `reference`, `status`, `errormsg`) values ('+918500169269',	
+	(SELECT PhoneNo from customer where cust_id = (select cust_id from meter,sms_in 	where meter.meter_id =sender_number)),(SELECT CONCAT('Dear ',Name,' Your no of units: and your bill is ') from customer where cust_id = (select cust_id from meter,sms_in 	where meter.meter_id =sender_number)),NULL,NULL,NULL,NULL,NULL,'send',NULL)
+	
+	
+
+
+
+DELIMITER //
+create trigger message_trigger after insert on sms_in 
+	for each row begin
+	IF sms_text = 'tampered' then
+	INSERT INTO `ozekimessageout`( `sender`, `receiver`, `msg`, `senttime`, `receivedtime`, `operator`, `msgtype`, `reference`, `status`, `errormsg`) values ( '+918500169269',	
+	(SELECT PhoneNo from customer where cust_id in (select cust_id from meter,sms_in 	where meter.meter_id = new.sender_number)),'Warning!!! You have attempted to tamper your meter. If you continue to do so, your connection will be terminated.',NULL,NULL,NULL,NULL,NULL,'send',NULL);
+	ELSE
+	INSERT INTO `ozekimessageout`( `sender`, `receiver`, `msg`, `senttime`, `receivedtime`, `operator`, `msgtype`, `reference`, `status`, `errormsg`) values ( '+918500169269',	
+	(SELECT PhoneNo from customer where cust_id in (select cust_id from meter,sms_in 	where meter.meter_id = new.sender_number)),(SELECT CONCAT('Dear ',Name,'\nYour Monthly Bill:','\nConnection ID: ',ROUND((RAND()*90001)+10000),'\nUnits Consumed: ',(SELECT sms_text from sms_in,meter where new.sender_number = meter_id order by id DESC limit 0,1),'\nCost: Rs.', (SELECT (convert(sms_text,unsigned integer))*7 from sms_in,meter where new.sender_number = meter_id order by id DESC limit 0,1),'\nPay your bill at:\n www.mpcz.co.in') from customer where cust_id in (select cust_id from meter,sms_in 	where meter.meter_id = new.sender_number)),NULL,NULL,NULL,NULL,NULL,'send',NULL);
+
+
+	INSERT INTO stats ( `meter_id`, `load_value`, `date`) values (	
+	 (select distinct meter_id from meter,sms_in where meter.meter_id = new.sender_number),(SELECT sms_text from sms_in,meter where new.sender_number = meter_id order by id DESC limit 0,1),NOW());
+END IF;
+end;//
+DELIMITER ;
+		
+
+		
+
+		
